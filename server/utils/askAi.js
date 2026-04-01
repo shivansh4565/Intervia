@@ -1,22 +1,21 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
-const apikey = "AIzaSyDf5W3bVkHtMo7Pm7bfxGHcoS9uQeBvsDY "
+const ai = new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY,
+});
+// console.log(await ai.models.list());
 
-const genAI = new GoogleGenerativeAI(apikey);
-// console.log("KEY LOADED:", process.env.GEMINI_API_KEY?.slice(0, 10), "...");
 
 const askAi = async (messages) => {
     try {
-        const model = genAI.getGenerativeModel({
-            model: "gemini-3-flash-preview", // 🔥 use stable model
-        });
-
         const prompt = messages.map(m => m.content).join("\n");
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash-lite", // ✅ FIXED
+            contents: prompt,
+        });
 
-        const text = response.text();
+        const text = response.text;
 
         if (!text) {
             throw new Error("Empty AI response");

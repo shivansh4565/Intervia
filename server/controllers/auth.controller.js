@@ -22,7 +22,6 @@ export const googleAuth = async (req, res) => {
                 user.firebaseUid = uid;
                 await user.save();
 
-                // console.log("✅ firebaseUid synced:", uid);
             }
         } else {
             // ✅ create new user
@@ -32,7 +31,7 @@ export const googleAuth = async (req, res) => {
                 firebaseUid: uid,
                 credits: 100
             });
-            console.log("✅ New user created");
+
         }
 
         const token = genToken(user._id);
@@ -77,8 +76,7 @@ export const logOut = async (req, res) => {
             success: true,
             message: "Logout successful"
         });
-        console.log("Cookies:", req.cookies);
-        console.log("Token:", token);
+
     } catch (error) {
         return res.status(500).json({
             success: false,

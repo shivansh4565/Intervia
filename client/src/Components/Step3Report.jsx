@@ -6,7 +6,7 @@ import { useParams } from "react-router-dom";
 import { buildStyles, CircularProgressbar } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import { FaArrowLeft } from "react-icons/fa6"
-import { useEffect } from "react";
+import { useMemo } from "react";
 import { motion } from 'framer-motion'
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -16,35 +16,122 @@ import { useCallback } from "react";
 
 function Step3Report({ report }) {
   const { id: interviewId } = useParams();
+  const getSkillLine = (type, score) => {
+    if (type === "confidence") {
+      if (score >= 8)
+        return "The candidate demonstrates strong confidence in presenting ideas with clarity and assurance.";
+      if (score >= 5)
+        return "The candidate shows moderate confidence but can improve consistency in expressing ideas.";
+      return "The candidate lacks confidence and should focus on improving self-assurance while responding.";
+    }
 
+    if (type === "communication") {
+      if (score >= 8)
+        return "The candidate communicates effectively with clear structure and articulation.";
+      if (score >= 5)
+        return "The candidate demonstrates basic communication skills but can improve clarity and structure.";
+      return "The candidate needs to improve communication by organizing thoughts more clearly.";
+    }
+
+    if (type === "correctness") {
+      if (score >= 8)
+        return "The candidate shows strong technical accuracy and a solid understanding of concepts.";
+      if (score >= 5)
+        return "The candidate demonstrates partial understanding but needs better conceptual clarity.";
+      return "The candidate lacks technical accuracy and should strengthen fundamental understanding.";
+    }
+  };
   const generateReportFromAnswers = (answers = []) => {
     const questionWiseScore = answers.map((a) => {
-      let score = 0;
+      let confidence = 0;
+      let communication = 0;
+      let correctness = 0;
 
-      if (a.answer?.length > 20) score += 4;
-      if (a.answer?.includes("example") || a.answer?.includes("because")) score += 3;
-      if (a.answer?.length > 80) score += 3;
+      const text = a.answer?.toLowerCase() || "";
+
+      // =========================
+      // CONFIDENCE (length + completeness)
+      // =========================
+      if (text.length > 30) confidence += 3;
+      if (text.length > 80) confidence += 3;
+      if (text.length > 150) confidence += 4;
+
+      // =========================
+      // COMMUNICATION (clarity + structure)
+      // =========================
+      if (text.includes("because") || text.includes("therefore")) communication += 3;
+      if (text.includes("first") || text.includes("second") || text.includes("finally")) communication += 3;
+      if (text.split(".").length > 2) communication += 4;
+
+      // =========================
+      // CORRECTNESS (keywords / logic)
+      // =========================
+      if (text.includes("example")) correctness += 3;
+      if (text.includes("solution") || text.includes("approach")) correctness += 3;
+      if (text.length > 100) correctness += 4;
+
+      // clamp values
+      confidence = Math.min(confidence, 10);
+      communication = Math.min(communication, 10);
+      correctness = Math.min(correctness, 10);
+
+      const finalScore = Math.round(
+        (confidence + communication + correctness) / 3
+      );
+
+      // =========================
+      // FEEDBACK (professional)
+      // =========================
+      let feedback = "";
+
+      if (finalScore >= 8) {
+        feedback =
+          "The response is well-structured, confident, and demonstrates strong conceptual clarity with relevant explanations.";
+      } else if (finalScore >= 5) {
+        feedback =
+          "The answer shows a reasonable understanding, but could benefit from better structure, clarity, and supporting details.";
+      } else {
+        feedback =
+          "The response lacks clarity and depth. Improving structure, confidence, and conceptual understanding is recommended.";
+      }
 
       return {
         question: a.question,
-        score: Math.min(score, 10),
-        feedback: score > 6 ? "Good answer" : "Needs improvement",
+        answer: a.answer,
+        confidence,
+
+        communication,
+        correctness,
+        score: finalScore,
+        feedback,
       };
     });
 
-    const avg =
-      questionWiseScore.reduce((acc, q) => acc + q.score, 0) /
-      (questionWiseScore.length || 1);
+    // =========================
+    // FINAL AVERAGES
+    // =========================
+    const total = questionWiseScore.length || 1;
+
+    const avgConfidence =
+      questionWiseScore.reduce((acc, q) => acc + q.confidence, 0) / total;
+
+    const avgCommunication =
+      questionWiseScore.reduce((acc, q) => acc + q.communication, 0) / total;
+
+    const avgCorrectness =
+      questionWiseScore.reduce((acc, q) => acc + q.correctness, 0) / total;
+
+    const finalScore =
+      questionWiseScore.reduce((acc, q) => acc + q.score, 0) / total;
 
     return {
-      finalScore: Number(avg.toFixed(1)),
-      confidence: Math.min(avg + 1, 10),
-      communication: avg,
-      correctness: Math.max(avg - 1, 0),
+      finalScore: Number(finalScore.toFixed(1)),
+      confidence: Number(avgConfidence.toFixed(1)),
+      communication: Number(avgCommunication.toFixed(1)),
+      correctness: Number(avgCorrectness.toFixed(1)),
       questionWiseScore,
     };
   };
- 
   const navigate= useNavigate();
   const finalReport = report?.questionWiseScore
     ? report
@@ -63,11 +150,24 @@ function Step3Report({ report }) {
     score: score.score || 0,
   }))
 
-  const skills = [
-    { label: "Confidence", value: confidence },
-    { label: "Communication", value: communication },
-    { label: "Correctness", value: correctness },
-  ];
+  const skills = useMemo(() => [
+    {
+      name: "Confidence",
+      label: getSkillLine("confidence", confidence),
+      value: confidence,
+    },
+    {
+      name: "Communication",
+      label: getSkillLine("communication", communication),
+      value: communication,
+    },
+    {
+      name: "Correctness",
+      label: getSkillLine("correctness", correctness),
+      value: correctness,
+    },
+  ], [confidence, communication, correctness]);
+
 
   let performanceText = "";
   let shortTagline = "";
@@ -87,35 +187,38 @@ function Step3Report({ report }) {
  
  
   const downloadPDF = useCallback(() => {
-  
+    if (!questionWiseScore || questionWiseScore.length === 0) {
+      alert("Report not ready yet");
+      return;
+    }
+
     const doc = new jsPDF("p", "mm", "a4");
 
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
     const contentWidth = pageWidth - margin * 2;
 
-    let currentY = 25;
+    let currentY = 20;
 
     // ================= TITLE =================
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(20);
-    doc.setTextColor(34, 197, 94);
+    doc.setFontSize(18);
+    doc.setTextColor(16, 185, 129);
 
     doc.text("AI Interview Performance Report", pageWidth / 2, currentY, {
       align: "center",
     });
 
-    currentY += 5;
+    currentY += 10;
 
-    // underline
-    doc.setDrawColor(34, 197, 94);
-    doc.line(margin, currentY + 2, pageWidth - margin, currentY + 2);
+    doc.setDrawColor(16, 185, 129);
+    doc.line(margin, currentY, pageWidth - margin, currentY);
 
-    currentY += 15;
+    currentY += 12;
 
-    // ================= FINAL SCORE BOX =================
+    // ================= FINAL SCORE =================
     doc.setFillColor(240, 253, 244);
-    doc.roundedRect(margin, currentY, contentWidth, 20, 4, 4, "F");
+    doc.roundedRect(margin, currentY, contentWidth, 18, 4, 4, "F");
 
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
@@ -123,49 +226,70 @@ function Step3Report({ report }) {
     doc.text(
       `Final Score: ${finalScore}/10`,
       pageWidth / 2,
-      currentY + 12,
+      currentY + 11,
       { align: "center" }
     );
 
-    currentY += 30;
+    currentY += 25;
 
-    // ================= SKILLS BOX =================
-    doc.setFillColor(249, 250, 251);
-    doc.roundedRect(margin, currentY, contentWidth, 30, 4, 4, "F");
+    // ================= SKILL EVALUATION =================
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text("Skill Evaluation", margin, currentY);
 
-    doc.setFontSize(12);
+    currentY += 10;
 
-    doc.text(`Confidence: ${confidence}`, margin + 10, currentY + 10);
-    doc.text(`Communication: ${communication}`, margin + 10, currentY + 18);
-    doc.text(`Correctness: ${correctness}`, margin + 10, currentY + 26);
+    skills.forEach((s) => {
+      // Skill Name
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text(`${s.name} (${s.value}/10)`, margin, currentY);
 
-    currentY += 45;
+      currentY += 6;
+
+      // Skill Description (wrapped)
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+
+      const splitText = doc.splitTextToSize(s.label, contentWidth);
+      doc.text(splitText, margin, currentY);
+
+      currentY += splitText.length * 5 + 5;
+
+      // Page break safety
+      if (currentY > 260) {
+        doc.addPage();
+        currentY = 20;
+      }
+    });
 
     // ================= ADVICE =================
     let advice = "";
 
     if (finalScore >= 8) {
       advice =
-        "Excellent performance. Maintain confidence and structure. Continue refining clarity and supporting answers with strong real-world examples.";
+        "Excellent performance. Maintain confidence and structure. Continue refining clarity and supporting answers.";
     } else if (finalScore >= 5) {
       advice =
-        "Good foundation shown. Improve clarity and structure. Practice delivering concise, confident answers with stronger supporting points.";
+        "Good foundation shown. Improve clarity and structure. Practice delivering concise and confident answers.";
     } else {
       advice =
-        "Significant improvement needed. Focus on clarity, communication, and confidence. Practice answering questions with structured responses.";
+        "Significant improvement required. Focus on clarity, communication, and conceptual understanding.";
     }
 
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text("Professional Advice", margin + 10, currentY + 10);
+    doc.text("Professional Advice", margin, currentY);
+
+    currentY += 8;
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(11);
+    doc.setFontSize(10);
 
-    const splitAdvice = doc.splitTextToSize(advice, contentWidth - 20);
-    doc.text(splitAdvice, margin + 10, currentY + 20);
+    const splitAdvice = doc.splitTextToSize(advice, contentWidth);
+    doc.text(splitAdvice, margin, currentY);
 
-    currentY += 50;
+    currentY += splitAdvice.length * 5 + 10;
 
     // ================= QUESTION TABLE =================
     autoTable(doc, {
@@ -173,16 +297,18 @@ function Step3Report({ report }) {
       margin: { left: margin, right: margin },
       head: [["#", "Question", "Score", "Feedback"]],
       body: questionWiseScore.map((q, i) => [
-        `${i + 1}`,
-        q.question,
+        i + 1,
+        doc.splitTextToSize(q.question, 50),
         `${q.score}/10`,
-        q.feedback,
+        doc.splitTextToSize(q.feedback, 60),
       ]),
-      columnStyles: {
-        0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 55 },
-        2: { cellWidth: 20, halign: "center" },
-        3: { cellWidth: "auto" },
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+      },
+      headStyles: {
+        fillColor: [16, 185, 129],
+        textColor: 255,
       },
       alternateRowStyles: {
         fillColor: [249, 250, 251],
@@ -190,43 +316,7 @@ function Step3Report({ report }) {
     });
 
     doc.save("AI_Interview_Report.pdf");
-  }, [finalScore, confidence, communication, correctness, questionWiseScore]);
-  useEffect(() => {
-    const handleFinishAndDownload = async () => {
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
-
-        const token = await user.getIdToken();
-
-        // 🔥 1. SAVE FINAL SCORE
-        await axios.post(
-          `${serverUrl}/api/interview/finish`,
-          { interviewId },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
-
-        console.log("✅ Interview saved in DB");
-
-        // 🔥 2. THEN DOWNLOAD PDF
-        setTimeout(() => {
-          downloadPDF();
-        }, 200);
-
-      } catch (err) {
-        console.log("❌ Error saving interview:", err);
-      }
-    };
-
-    if (interviewId) {
-      handleFinishAndDownload();
-    }
-
-  }, [interviewId, downloadPDF]);
+  }, [finalScore, skills, questionWiseScore]);
   if (!finalReport) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-gray-50'>
@@ -263,9 +353,36 @@ function Step3Report({ report }) {
         </div>
 
         {/* RIGHT BUTTON */}
-        <button 
-        onClick={downloadPDF}
-        className='bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl shadow-md transition-all duration-300 font-semibold text-sm sm:text-base w-full sm:w-auto'>
+        <button
+          onClick={async () => {
+            try {
+              const user = auth.currentUser;
+              if (!user) return;
+
+              const token = await user.getIdToken();
+
+              // ✅ STEP 1: Save interview
+              await axios.post(
+                `${serverUrl}/api/interview/finish`,
+                { interviewId },
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`
+                  }
+                }
+              );
+
+              console.log("✅ Interview saved");
+
+              // ✅ STEP 2: Download PDF
+              downloadPDF();
+
+            } catch (err) {
+              console.log("❌ Error:", err);
+            }
+          }}
+          className='bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl shadow-md transition-all duration-300 font-semibold text-sm sm:text-base w-full sm:w-auto'
+        >
           Download PDF
         </button>
 
@@ -303,20 +420,49 @@ function Step3Report({ report }) {
             className='bg-white rounded-2xl sm:rounded-3xl shadow-lg p-6 sm:p-8'>
             <h3 className='text-base  sm:text-lg font-semibold text-gray-700 mb-6'>Skill Evaluation</h3>
             <div className="space-y-5">
-              {
-                skills.map((s,i)=>(
-                  <div key={i}>
-                    <div className="flex justify-between mb-2 text-sm sm:text-base">
-                      <span>{s.label}</span>
-                      <span className='font-semibold  text-green-700'>{s.value}</span>
+              <div className="space-y-6">
+                {skills.map((s, i) => (
+                  <div
+                    key={i}
+                    className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-lg transition-all duration-300"
+                  >
+                    {/* TOP SECTION */}
+                    <div className="flex justify-between items-start gap-4 mb-3">
+
+                      {/* LABEL */}
+                      <div className="flex-1">
+                        <p className="text-[11px] uppercase tracking-wider text-gray-400 mb-1">
+                          Skill Evaluation
+                        </p>
+                        <p className="text-base sm:text-lg font-bold text-gray-900 leading-relaxed tracking-wide">
+                          {s.name}
+                        </p>
+                        <p className="text-sm sm:text-base font-medium text-gray-800 leading-relaxed">
+                          {s.label}
+                        </p>
+                      </div>
+
+                      {/* SCORE BADGE */}
+                      <div className="min-w-[55px] text-center bg-emerald-100 text-emerald-700 font-bold text-sm px-3 py-1 rounded-full shadow-sm">
+                        {s.value}/10
+                      </div>
                     </div>
-                    <div className="bg-gray-200 h-2 sm:h-3 rounded-full">
-                      <div className="h-full bg-green-500 rounded-full" 
-                      style={{width:`${s.value*10}%`}}></div>
+
+                    {/* PROGRESS BAR */}
+                    <div className="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600 transition-all duration-500"
+                        style={{ width: `${s.value * 10}%` }}
+                      />
                     </div>
+
+                    {/* OPTIONAL SUBTEXT */}
+                    <p className="text-xs text-gray-400 mt-2">
+                      Performance based on AI evaluation metrics
+                    </p>
                   </div>
-                ))
-              }
+                ))}
+              </div>
             </div>
           </motion.div>
 
@@ -353,24 +499,45 @@ function Step3Report({ report }) {
   Question Breakdown
 </h3>
 <div className="space-y-6">
-              {(questionWiseScore || []).map((q,i)=>(
-    <div key={i} className=' bg-gray-50 sm:p-6 p-4 rounded-xl sm:rounded-2xl border border-gray-200'>
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
-        <div>
-          <p className='text-xs text-gray-400'>
-            Question {i+1}
-          </p>
-          <p className=' font-semibold text-gray-800 text-sm sm:text-base leading-relaxed'>
-            {
-              q.question || "Question Not Avalible"
-            }
-          </p>
-        </div>
-        <div className="py-1 bg-green-100  text-green-600  px-3  rounded-full font-bold text-xs sm:text-sm w-fit">{q.score||0}/10</div>
-      </div>
-            
-    </div>
-  ))}
+              <div className="space-y-6">
+                {(questionWiseScore || []).map((q, i) => (
+                  <div
+                    key={i}
+                    className="bg-gray-50 sm:p-6 p-4 rounded-xl sm:rounded-2xl border border-gray-200"
+                  >
+                    {/* QUESTION */}
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
+                      <div>
+                        <p className="text-xs text-gray-400">Question {i + 1}</p>
+
+                        <p className="font-semibold text-gray-800 text-sm sm:text-base leading-relaxed">
+                          {q.question || "Question Not Available"}
+                        </p>
+                      </div>
+
+                      <div className="py-1 bg-green-100 text-green-600 px-3 rounded-full font-bold text-xs sm:text-sm w-fit">
+                        {q.score || 0}/10
+                      </div>
+                    </div>
+
+                    {/* ✅ ANSWER */}
+                    <div className="mb-3">
+                      <p className="text-xs text-gray-500 mb-1">Your Answer</p>
+                      <p className="text-gray-700 text-sm leading-relaxed bg-white p-3 rounded-lg border">
+                        {q.answer || "No answer submitted"}
+                      </p>
+                    </div>
+
+                    {/* ✅ FEEDBACK */}
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">AI Feedback</p>
+                      <p className="text-sm text-gray-700 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+                        {q.feedback || "No feedback available"}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
 </div>
 
           </motion.div>

@@ -54,9 +54,7 @@ function InterviewHistory() {
   }, [])
 
   // ✅ Loading state
-  if (loading) {
-    return <p>Loading interviews...</p>
-  }
+ 
 
   // ✅ Error state
   if (error) {

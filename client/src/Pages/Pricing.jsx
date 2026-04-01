@@ -41,10 +41,10 @@ const Pricing = () => {
       id: "pro",
       name: "Pro Pack",
       price: "₹500",
-      credits: 650,
+      credits: 750,
       description: "Best value for serious job preparation.",
       features: [
-        "650 AI Interview Credits",
+        "750 AI Interview Credits",
         "Advanced AI Feedback",
         "Skill Trend Analysis",
         "Priority AI Processing",

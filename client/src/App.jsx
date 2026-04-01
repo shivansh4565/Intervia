@@ -60,10 +60,6 @@ function App() {
     return () => unsubscribe();
   }, [dispatch]);
 
-  // 🔥 VERY IMPORTANT
-  if (loading) {
-    return <p>Loading...</p>;
-  }
 
   return (
     <Routes>
