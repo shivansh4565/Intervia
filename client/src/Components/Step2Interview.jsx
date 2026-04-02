@@ -6,12 +6,13 @@ import { motion } from "framer-motion"
 import axios from "axios"
 import { serverUrl } from '../App'
 import { auth } from "../Utils/Firebase";
-
+import { useNavigate } from "react-router-dom";
 import { FaMicrophone, FaMicrophoneSlash ,FaStar }  from "react-icons/fa";
 
 function Step2Interview({ interviewData, onFinish }) {
-
-  const { questions = [], userName = "there" , interviewId } = interviewData || {}
+  const navigate = useNavigate();
+  const { questions = [], userName = "There" } = interviewData || {}
+  const { interviewId } = interviewData || {}
 const [answers, setAnswers] = useState([])
   const [isIntroPhase, setIsIntroPhase] = useState(true);
   const recognitionRef = useRef(null)
@@ -102,8 +103,9 @@ const [answers, setAnswers] = useState([])
         setCurrentIndex((prev) => prev + 1);
         setAnswer("");
       } else {
-
-        // 🔥 FINAL SUBMIT (MOST IMPORTANT)
+        console.log("nothing")
+      }
+        // 🔥 FINAL SUBMIT
         await axios.post(
           `${serverUrl}/api/interview/finish`,
           { interviewId },
@@ -113,13 +115,11 @@ const [answers, setAnswers] = useState([])
             }
           }
         );
-        onFinish &&
-          onFinish({
-            answers: updatedAnswers,
-            feedback,
-            rating,
-          });
-      }
+
+        console.log("✅ Interview finished");
+
+        // ✅ REDIRECT TO REPORT PAGE
+        navigate(`/report/${interviewId}`);
 
     } catch (err) {
       console.error("❌ Error:", err);

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
+import SERVER_URL from "../App"
 
 import {
   FaUserTie,
@@ -14,7 +15,6 @@ import {
 import { setUserData } from "../redux/userSlice";
 
 function Step1Setup({ onStart }) {
-  const SERVER_URL = "http://localhost:8000";
 
   const { userData } = useSelector((state) => state.user);
   const dispatch = useDispatch();
@@ -305,7 +305,7 @@ function Step1Setup({ onStart }) {
 
             {/* ✅ ERROR FIX */}
             {error && (
-              <p className="text-red-500 text-sm">{error}</p>
+              <p className="text-red-500 text-sm">You  have no credits to start the interview</p>
             )}
           </div>
 

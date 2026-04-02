@@ -68,7 +68,7 @@ Designed with a SaaS architecture approach, this project goes beyond CRUD operat
 
 ```bash
 # Clone repository
-git clone https://github.com/your-username/ai-interview-agent.git
+git clone https://github.com/shivansh4565/Intervia
 
 # Backend setup
 cd server

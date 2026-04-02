@@ -7,7 +7,7 @@ function Footer() {
 
     return (
         <div className="bg-[#f3f3f3] flex justify-center px-4 py-10">
-            <div className="w-full max-w-6xl bg-white rounded-[24px] shadow-sm px-8 py-10 text-center">
+            <div className="w-full max-w-6xl bg-white `rounded-3xl` shadow-sm px-8 py-10 text-center">
 
                 {/* Logo */}
                 <div

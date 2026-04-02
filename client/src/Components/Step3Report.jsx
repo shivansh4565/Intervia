@@ -13,9 +13,13 @@ import autoTable from "jspdf-autotable"
 import {AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis, Area} from "recharts"
 import { useNavigate } from 'react-router-dom';
 import { useCallback } from "react";
+function Step3Report({ report, interviewId: propId }) {
 
-function Step3Report({ report }) {
-  const { id: interviewId } = useParams();
+  const { id: paramId } = useParams();
+
+  // ✅ FINAL ID (works for BOTH cases)
+  const interviewId = propId || paramId;
+
   const getSkillLine = (type, score) => {
     if (type === "confidence") {
       if (score >= 8)

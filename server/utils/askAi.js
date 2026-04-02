@@ -11,7 +11,7 @@ const askAi = async (messages) => {
         const prompt = messages.map(m => m.content).join("\n");
 
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash-lite", // ✅ FIXED
+            model: "gemini-2.5-flash", // ✅ FIXED
             contents: prompt,
         });
 

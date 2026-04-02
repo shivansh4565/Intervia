@@ -33,9 +33,11 @@ function InterviewPage() {
 
       {/* STEP 3 */}
       {step === 3 && (
-        <Step3Report report={interviewData} />
+        <Step3Report
+          report={interviewData}
+          interviewId={interviewData?.interviewId || interviewData?._id}
+        />
       )}
-
     </div>
   )
 }

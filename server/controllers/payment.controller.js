@@ -69,7 +69,6 @@ export const verifyPayment = async (req, res) => {
             return res.json({ message: "Already processed" });
         }
 
-        // console.log("💡 payment.userId:", payment.userId);
 
         // 🔍 Try finding user by firebaseUid
         let user = await User.findOne({ firebaseUid: payment.userId });

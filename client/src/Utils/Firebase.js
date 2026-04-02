@@ -20,7 +20,6 @@ const app = initializeApp(firebaseConfig);
 
 const auth = getAuth(app);
 
-// 🔥 ADD THIS (VERY IMPORTANT)
 setPersistence(auth, browserLocalPersistence)
     .then(() => {
         console.log("🔥 Firebase persistence enabled");
