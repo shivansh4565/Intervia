@@ -305,7 +305,7 @@ const serverUrl = "https://intervia-ai.onrender.com";
 
             {/* ✅ ERROR FIX */}
             {error && (
-              <p className="text-red-500 text-sm">You  have no credits to start the interview</p>
+              <p className="text-red-500 text-sm">{error}</p>
             )}
           </div>
 
