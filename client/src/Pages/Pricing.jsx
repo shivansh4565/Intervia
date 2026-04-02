@@ -69,7 +69,7 @@ const Pricing = () => {
       }
 
       const token = await user.getIdToken(); // 🔥 FIX
-      console.log(`token gen: ${token}`);
+  
       // 1️⃣ Create order
       const res = await fetch(`${serverUrl}/api/payment/order`, {
         method: "POST",
