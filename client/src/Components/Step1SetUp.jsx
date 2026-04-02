@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
-import serverUrl from "../App"
+
 
 import {
   FaUserTie,
@@ -15,7 +15,7 @@ import {
 import { setUserData } from "../redux/userSlice";
 
 function Step1Setup({ onStart }) {
-
+const serverUrl = "https://intervia-ai.onrender.com";
   const { userData } = useSelector((state) => state.user);
   const dispatch = useDispatch();
 
