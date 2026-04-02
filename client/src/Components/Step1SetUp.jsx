@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { getAuth } from "firebase/auth";
-import SERVER_URL from "../App"
+import serverUrl from "../App"
 
 import {
   FaUserTie,
@@ -57,7 +57,7 @@ function Step1Setup({ onStart }) {
       const token = await user.getIdToken();
 
       const res = await axios.post(
-        `${SERVER_URL}/api/interview/resume`,
+        `${serverUrl}/api/interview/resume`,
         formData,
         {
           headers: {
@@ -105,7 +105,7 @@ function Step1Setup({ onStart }) {
       // console.log("🔥 TOKEN:", token); // 👈 MUST PRINT
 
       const result = await axios.post(
-        SERVER_URL + "/api/interview/generate-questions",
+        serverUrl + "/api/interview/generate-questions",
         { role, experience, mode, resumeText, projects, skills },
         {
           headers: {
