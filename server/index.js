@@ -20,9 +20,9 @@ connectDb();
 app.use(express.json())
 app.use(cookieParser())
 app.use(cors({
-    "https://intervia-client.onrender.com"
-    credentials:true
-}))
+  origin: "https://intervia-client.onrender.com",
+  credentials: true
+}));
 
 
 app.use("/api/auth",authRouter)
