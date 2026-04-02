@@ -235,6 +235,13 @@ B.Tech CSE (AI) | Full Stack Developer
 
 ---
 
+
+
+## 1️⃣ Check the deployed project
+```bash
+[Intervia](https://intervia-client.onrender.com/)
+```
+
 # ⭐ Support
 
 If you like this project:
