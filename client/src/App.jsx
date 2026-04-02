@@ -13,7 +13,7 @@ import InterviewReport from "./Pages/InterviewReport";
 
 import { setUserData } from "./redux/userSlice";
 
-export const serverUrl = "http://localhost:8000";
+export const serverUrl = "https://intervia-ai.onrender.com";
 
 function App() {
   const [user, setUser] = useState(null);
